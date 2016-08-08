@@ -17,10 +17,10 @@ void main() {
 fragment_shader = """
 #version 330
 
-out vec4 frag
+out vec4 frag;
 
 void main() {
-    frag = vec4(1.0, 0.0, 0.0, 1.0);
+    frag = vec4(1.0, 1.0, 1.0, 1.0);
 }
 """
 
@@ -28,21 +28,26 @@ void main() {
 class TestApp(BaseApp):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mesh = Mesh(self.driver, 3, {'position': 2})
+        self.mesh = Mesh(self.driver, 3, 3, {'position': 2})
         self.shaderprogram = self.driver.shader_program(vertex_shader,
                                                         fragment_shader)
 
-        vertices = [-0.5, -0.5,
-                    0.5, -0.5,
-                    0.5, 0.5]
+        vertices = [-1, -1,
+                    1, -1,
+                    1, 1]
+        indices = [0, 1, 2]
         self.mesh.bind_shader(self.shaderprogram._shader_program)
         self.mesh.vertices = vertices
+        self.mesh.indices = indices
 
     def render(self):
-        self.driver.clear((1, 1, 1, 1))
+        gl.glDisable(gl.GL_CULL_FACE)
+        gl.glDisable(gl.GL_DEPTH_TEST)
+        self.driver.clear((0, 0, 0, 1))
         with self.shaderprogram:
             with self.mesh:
-                gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3)
+                gl.glDrawElements(gl.GL_TRIANGLES, 3, gl.GL_UNSIGNED_SHORT,
+                                  None)
 
 test = DesktopContainer(TestApp)
 test.run()
