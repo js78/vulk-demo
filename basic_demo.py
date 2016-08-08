@@ -39,8 +39,7 @@ class TestApp(BaseApp):
         self.mesh.vertices = vertices
 
     def render(self):
-        gl.glClearColor(1.0, 1.0, 1.0, 1.0)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+        self.driver.clear((1, 1, 1, 1))
         with self.shaderprogram:
             with self.mesh:
                 gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3)
