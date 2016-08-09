@@ -36,7 +36,7 @@ class TestApp(BaseApp):
                     1, -1,
                     1, 1]
         indices = [0, 1, 2]
-        self.mesh.bind_shader(self.shaderprogram._shader_program)
+        self.mesh.bind_shader(self.shaderprogram)
         self.mesh.vertices = vertices
         self.mesh.indices = indices
 
