@@ -1,4 +1,5 @@
 from vulk.container.desktopcontainer import DesktopContainer
+from vulk.graphic.constant import Constant
 from vulk.baseapp import BaseApp
 from vulk.graphic.mesh import Mesh
 
@@ -32,22 +33,18 @@ class TestApp(BaseApp):
         self.shaderprogram = self.driver.shader_program(vertex_shader,
                                                         fragment_shader)
 
-        vertices = [-1, -1,
-                    1, -1,
-                    1, 1]
+        vertices = [-0.5, -0.5,
+                    0.5, -0.5,
+                    0.5, 0.5]
         indices = [0, 1, 2]
-        self.mesh.bind_shader(self.shaderprogram)
+        self.mesh.bind_attributes(self.shaderprogram)
         self.mesh.vertices = vertices
         self.mesh.indices = indices
 
     def render(self):
-        gl.glDisable(gl.GL_CULL_FACE)
-        gl.glDisable(gl.GL_DEPTH_TEST)
-        self.driver.clear((0, 0, 0, 1))
+        self.driver.clear((0, 0, 0, 1), 1)
         with self.shaderprogram:
-            with self.mesh:
-                gl.glDrawElements(gl.GL_TRIANGLES, 3, gl.GL_UNSIGNED_SHORT,
-                                  None)
+            self.mesh.render(Constant.TRIANGLES, 0, 3)
 
 test = DesktopContainer(TestApp)
 test.run()
