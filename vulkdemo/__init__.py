@@ -1,9 +1,6 @@
-from vulk.container.desktopcontainer import DesktopContainer
 from vulk.graphic.constant import Constant
 from vulk.baseapp import BaseApp
 from vulk.graphic.mesh import Mesh
-
-import OpenGL.GL as gl
 
 vertex_shader = """
 #version 330
@@ -26,7 +23,7 @@ void main() {
 """
 
 
-class TestApp(BaseApp):
+class App(BaseApp):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mesh = Mesh(self.driver, 3, 3, {'position': 2})
@@ -45,6 +42,3 @@ class TestApp(BaseApp):
         self.driver.clear((0, 0, 0, 1), 1)
         with self.shaderprogram:
             self.mesh.render(Constant.TRIANGLES, 0, 3)
-
-test = DesktopContainer(TestApp)
-test.run()
