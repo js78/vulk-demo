@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script type="text/javascript" src="{0}/brython.js"></script>
+    </head>
+
+    <body onload="brython()">
+        <canvas id="app_canvas" width="640" height="480">
+            No HTML5 support
+        </canvas>
+
+        <script type="text/python">
+            from vulk.container.webcontainer import WebContainer
+            from vulkdemo import App
+
+            container = WebContainer(App)
+            container.run()
+        </script>
+    </body>
+</html>
