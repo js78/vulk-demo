@@ -1,4 +1,4 @@
-from vulk.graphic.constant import Constant
+from vulk.graphic import constant
 from vulk.baseapp import BaseApp
 from vulk.graphic.mesh import Mesh
 
@@ -38,7 +38,7 @@ class App(BaseApp):
         self.mesh.vertices = vertices
         self.mesh.indices = indices
 
-    def render(self):
+    def render(self, delta):
         self.driver.clear((0, 0, 0, 1), 1)
         with self.shaderprogram:
-            self.mesh.render(Constant.TRIANGLES, 0, 3)
+            self.mesh.render(constant.TRIANGLES, 0, 3)
