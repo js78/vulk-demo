@@ -11,22 +11,12 @@
         </canvas>
 
         <script type="text/python">
-#            from vulk.container.webcontainer import WebContainer
-#            from vulkdemo import App
-#
-#            container = WebContainer(App)
-#            container.run()
+            from vulk.container.webcontainer import WebContainer
+            from vulkdemo import App
 
-             from browser import window
-             from javascript import JSConstructor
+            container = WebContainer(App)
+            container.run()
 
-             ArrayBuffer = JSConstructor(window.ArrayBuffer)
-             DataView = JSConstructor(window.DataView)
-
-             test = ArrayBuffer(4)
-             data = DataView(test)
-             data.setFloat32(0, 9)
-             print(data.getFloat32(0))
         </script>
     </body>
 </html>
