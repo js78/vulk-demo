@@ -22,6 +22,24 @@ void main() {
 }
 """
 
+vertex_shader = """
+#version 100
+
+attribute vec2 position;
+
+void main() {
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+}
+"""
+
+fragment_shader = """
+#version 100
+
+void main() {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+}
+"""
+
 
 class App(BaseApp):
     def __init__(self, *args, **kwargs):
@@ -34,7 +52,7 @@ class App(BaseApp):
                     0.5, -0.5,
                     0.5, 0.5]
         indices = [0, 1, 2]
-        self.mesh.bind_attributes(self.shaderprogram)
+        self.mesh.prepare(self.shaderprogram)
         self.mesh.vertices = vertices
         self.mesh.indices = indices
 
