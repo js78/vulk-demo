@@ -1,62 +1,141 @@
-from vulk.graphic import constant
+import os.path
+
 from vulk.baseapp import BaseApp
-from vulk.graphic.mesh import Mesh
-
-vertex_shader = """
-#version 330
-
-in vec2 position;
-
-void main() {
-    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
-}
-"""
-
-fragment_shader = """
-#version 330
-
-out vec4 frag;
-
-void main() {
-    frag = vec4(1.0, 1.0, 1.0, 1.0);
-}
-"""
-
-vertex_shader = """
-#version 100
-
-attribute vec2 position;
-
-void main() {
-    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
-}
-"""
-
-fragment_shader = """
-#version 100
-
-void main() {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-}
-"""
+from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
+        PipelineVertexInputState, PipelineViewportState, Viewport, Rect2D, \
+        Offset2D, Extent2D, PipelineInputAssemblyState, \
+        PipelineRasterizationState, PipelineMultisampleState, \
+        PipelineColorBlendAttachmentState, PipelineColorBlendState, \
+        AttachmentDescription, SubpassDescription, AttachmentReference, \
+        SubpassDependency, Renderpass, CommandPool, Framebuffer, \
+        ClearColorValue, Semaphore, SubmitInfo, submit_to_graphic_queue, \
+        immediate_buffer
 
 
 class App(BaseApp):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mesh = Mesh(self.driver, 3, 3, {'position': 2})
-        self.shaderprogram = self.driver.shader_program(vertex_shader,
-                                                        fragment_shader)
 
-        vertices = [-0.5, -0.5,
-                    0.5, -0.5,
-                    0.5, 0.5]
-        indices = [0, 1, 2]
-        self.mesh.prepare(self.shaderprogram)
-        self.mesh.vertices = vertices
-        self.mesh.indices = indices
+    def start(self):
+        w = self.context.width
+        h = self.context.height
+
+        # ----------
+        # SHADER MODULES
+        path = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(path, "vert.spv"), 'rb') as f:
+            spirv_vs = f.read()
+        with open(os.path.join(path, "frag.spv"), 'rb') as f:
+            spirv_fs = f.read()
+
+        vs_module = ShaderModule(self.context, spirv_vs)
+        fs_module = ShaderModule(self.context, spirv_fs)
+
+        with immediate_buffer(self.context) as cmd:
+            self.context.final_image.update_layout(
+                cmd, 'VK_IMAGE_LAYOUT_UNDEFINED',
+                'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL',
+                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
+                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
+                0, 'VK_ACCESS_TRANSFER_READ_BIT'
+            )
+
+        # ----------
+        # RENDERPASS
+        attachment = AttachmentDescription(
+            self.context.final_image.format, 'VK_SAMPLE_COUNT_1_BIT',
+            'VK_ATTACHMENT_LOAD_OP_CLEAR', 'VK_ATTACHMENT_STORE_OP_STORE',
+            'VK_ATTACHMENT_LOAD_OP_DONT_CARE',
+            'VK_ATTACHMENT_STORE_OP_DONT_CARE',
+            'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL',
+            'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL')
+        subpass = SubpassDescription([AttachmentReference(
+            0, 'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL')])
+        dependency = SubpassDependency(
+            'VK_SUBPASS_EXTERNAL',
+            'VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT', 0, 0,
+            'VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT',
+            'VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT' # noqa
+        )
+        renderpass = Renderpass(self.context, [attachment], [subpass],
+                                [dependency])
+
+        # ----------
+        # PIPELINE
+        stages = [PipelineShaderStage(vs_module, 'vertex'),
+                  PipelineShaderStage(fs_module, 'fragment')]
+
+        vertex_input = PipelineVertexInputState([], [])
+        input_assembly = PipelineInputAssemblyState(
+            'VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST')
+
+        viewport_state = PipelineViewportState(
+            [Viewport(0, 0, w, h, 0, 1)],
+            [Rect2D(Offset2D(0, 0), Extent2D(w, h))])
+
+        rasterization = PipelineRasterizationState(
+            False, 'VK_POLYGON_MODE_FILL', 1, 'VK_CULL_MODE_NONE',
+            'VK_FRONT_FACE_CLOCKWISE', 0, 0, 0)
+
+        multisample = PipelineMultisampleState(
+            False, 'VK_SAMPLE_COUNT_1_BIT', 0)
+        depth = None
+        blend_attachment = PipelineColorBlendAttachmentState(
+            False, 'VK_BLEND_FACTOR_ONE', 'VK_BLEND_FACTOR_ZERO',
+            'VK_BLEND_OP_ADD', 'VK_BLEND_FACTOR_ONE', 'VK_BLEND_FACTOR_ZERO',
+            'VK_BLEND_OP_ADD', 'VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT' # noqa
+        )
+        blend = PipelineColorBlendState(False, 'VK_LOGIC_OP_COPY',
+                                        [blend_attachment], [0, 0, 0, 0])
+        dynamic = None
+
+        pipeline = Pipeline(
+            self.context, stages, vertex_input, input_assembly,
+            viewport_state, rasterization, multisample, depth,
+            blend, dynamic, renderpass)
+
+        # ----------
+        # COMMAND BUFFER
+        commandpool = CommandPool(
+            self.context, self.context.queue_family_indices['graphic'])
+        commandbuffers = commandpool.allocate_buffers(
+            self.context, 'VK_COMMAND_BUFFER_LEVEL_PRIMARY', 1)
+
+        framebuffer = Framebuffer(self.context, renderpass,
+                                  [self.context.final_image_view], w, h, 1)
+
+        with commandbuffers[0].bind() as cmd:
+            # We have to put the good layout because renderpass cannot do it
+            # for us, it doesn't know the old layout of the image
+            self.context.final_image.update_layout(
+                cmd, 'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL',
+                'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL',
+                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
+                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
+                'VK_ACCESS_TRANSFER_READ_BIT',
+                'VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT'
+            )
+
+            # RenderPass manages the final_image dst layout
+            cmd.begin_renderpass(
+                renderpass,
+                framebuffer,
+                Rect2D(Offset2D(0, 0), Extent2D(w, h)),
+                [ClearColorValue(float32=[0, 0, 1, 1])]
+            )
+
+            cmd.bind_pipeline(pipeline)
+            cmd.draw(3, 0)
+            cmd.end_renderpass()
+
+        # ----------
+        # SUBMIT
+        self.draw_semaphore = Semaphore(self.context)
+        self.submit = SubmitInfo([], [], [self.draw_semaphore], commandbuffers) # noqa
+
+    def end(self):
+        pass
 
     def render(self, delta):
-        self.driver.clear((0, 0, 0, 1), 1)
-        with self.shaderprogram:
-            self.mesh.render(constant.TRIANGLES, 0, 3)
+        submit_to_graphic_queue(self.context, [self.submit])
+        self.context.swap([self.draw_semaphore])
