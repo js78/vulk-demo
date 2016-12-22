@@ -24,9 +24,12 @@ class App(BaseApp):
 
         # ----------
         # VERTEX BUFFER
-        va = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5]
+        va = [([-0.5, -0.5], [1, 0, 0]),
+              ([-0.5, 0.5], [0, 1, 0]),
+              ([0.5, 0.5], [0, 0, 1]),
+              ([0.5, -0.5], [1, 1, 1])]
 
-        vertices = np.array(va, dtype=np.float32)
+        vertices = np.array(va, dtype='2float32, 3uint32')
         vbuffer = HighPerformanceBuffer(self.context, vertices.nbytes,
                                         'vertex')
         with vbuffer.bind(self.context) as b:
@@ -89,11 +92,14 @@ class App(BaseApp):
                   PipelineShaderStage(fs_module, 'fragment')]
 
         vertex_description = VertexInputBindingDescription(
-            0, 8, 'VK_VERTEX_INPUT_RATE_VERTEX')
-        vertex_attribute = VertexInputAttributeDescription(
+            0, 20, 'VK_VERTEX_INPUT_RATE_VERTEX')
+        position_attribute = VertexInputAttributeDescription(
             0, 0, 'VK_FORMAT_R32G32_SFLOAT', 0)
+        color_attribute = VertexInputAttributeDescription(
+            1, 0, 'VK_FORMAT_R32G32B32_UINT', 8)
         vertex_input = PipelineVertexInputState([vertex_description],
-                                                [vertex_attribute])
+                                                [position_attribute,
+                                                 color_attribute])
 
         input_assembly = PipelineInputAssemblyState(
             'VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST')
