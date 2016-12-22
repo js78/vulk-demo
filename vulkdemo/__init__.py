@@ -1,4 +1,5 @@
 import os.path
+import numpy as np
 
 from vulk.baseapp import BaseApp
 from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
@@ -9,7 +10,8 @@ from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         AttachmentDescription, SubpassDescription, AttachmentReference, \
         SubpassDependency, Renderpass, CommandPool, Framebuffer, \
         ClearColorValue, Semaphore, SubmitInfo, submit_to_graphic_queue, \
-        immediate_buffer
+        immediate_buffer, HighPerformanceBuffer, \
+        VertexInputBindingDescription, VertexInputAttributeDescription
 
 
 class App(BaseApp):
@@ -21,8 +23,18 @@ class App(BaseApp):
         h = self.context.height
 
         # ----------
+        # VERTEX BUFFER
+        vertices = np.array([0, -1, 0.5, 0.5, -0.5, 0.5], dtype=np.float32)
+        buf = HighPerformanceBuffer(self.context, vertices.nbytes,
+                                    'VK_SHARING_MODE_EXCLUSIVE', [])
+        with buf.bind(self.context) as b:
+            wrapper = np.array(b, copy=False)
+            np.copyto(wrapper, vertices.view(dtype=np.uint8), casting='no')
+
+        # ----------
         # SHADER MODULES
         path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(path, 'shader')
         with open(os.path.join(path, "vert.spv"), 'rb') as f:
             spirv_vs = f.read()
         with open(os.path.join(path, "frag.spv"), 'rb') as f:
@@ -65,7 +77,13 @@ class App(BaseApp):
         stages = [PipelineShaderStage(vs_module, 'vertex'),
                   PipelineShaderStage(fs_module, 'fragment')]
 
-        vertex_input = PipelineVertexInputState([], [])
+        vertex_description = VertexInputBindingDescription(
+            0, 8, 'VK_VERTEX_INPUT_RATE_VERTEX')
+        vertex_attribute = VertexInputAttributeDescription(
+            0, 0, 'VK_FORMAT_R32G32_SFLOAT', 0)
+        vertex_input = PipelineVertexInputState([vertex_description],
+                                                [vertex_attribute])
+
         input_assembly = PipelineInputAssemblyState(
             'VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST')
 
@@ -125,6 +143,7 @@ class App(BaseApp):
             )
 
             cmd.bind_pipeline(pipeline)
+            cmd.bind_vertex_buffers(0, 1, [buf.final_buffer], [0])
             cmd.draw(3, 0)
             cmd.end_renderpass()
 
