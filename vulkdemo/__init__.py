@@ -24,12 +24,23 @@ class App(BaseApp):
 
         # ----------
         # VERTEX BUFFER
-        vertices = np.array([0, -1, 0.5, 0.5, -0.5, 0.5], dtype=np.float32)
-        buf = HighPerformanceBuffer(self.context, vertices.nbytes,
-                                    'VK_SHARING_MODE_EXCLUSIVE', [])
-        with buf.bind(self.context) as b:
+        va = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5]
+
+        vertices = np.array(va, dtype=np.float32)
+        vbuffer = HighPerformanceBuffer(self.context, vertices.nbytes,
+                                        'vertex')
+        with vbuffer.bind(self.context) as b:
             wrapper = np.array(b, copy=False)
             np.copyto(wrapper, vertices.view(dtype=np.uint8), casting='no')
+
+        # ----------
+        # INDEX BUFFER
+        ia = [0, 1, 2, 0, 2, 3]
+        indices = np.array(ia, dtype=np.uint16)
+        ibuffer = HighPerformanceBuffer(self.context, indices.nbytes, 'index')
+        with ibuffer.bind(self.context) as b:
+            wrapper = np.array(b, copy=False)
+            np.copyto(wrapper, indices.view(dtype=np.uint8), casting='no')
 
         # ----------
         # SHADER MODULES
@@ -92,8 +103,8 @@ class App(BaseApp):
             [Rect2D(Offset2D(0, 0), Extent2D(w, h))])
 
         rasterization = PipelineRasterizationState(
-            False, 'VK_POLYGON_MODE_FILL', 1, 'VK_CULL_MODE_NONE',
-            'VK_FRONT_FACE_CLOCKWISE', 0, 0, 0)
+            False, 'VK_POLYGON_MODE_FILL', 1, 'VK_CULL_MODE_BACK_BIT',
+            'VK_FRONT_FACE_COUNTER_CLOCKWISE', 0, 0, 0)
 
         multisample = PipelineMultisampleState(
             False, 'VK_SAMPLE_COUNT_1_BIT', 0)
@@ -143,8 +154,10 @@ class App(BaseApp):
             )
 
             cmd.bind_pipeline(pipeline)
-            cmd.bind_vertex_buffers(0, 1, [buf.final_buffer], [0])
-            cmd.draw(3, 0)
+            cmd.bind_vertex_buffers(0, 1, [vbuffer.final_buffer], [0])
+            cmd.bind_index_buffer(ibuffer.final_buffer, 0,
+                                  'VK_INDEX_TYPE_UINT16')
+            cmd.draw_indexed(6, 0)
             cmd.end_renderpass()
 
         # ----------
