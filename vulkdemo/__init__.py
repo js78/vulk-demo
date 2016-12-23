@@ -11,7 +11,10 @@ from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         SubpassDependency, Renderpass, CommandPool, Framebuffer, \
         ClearColorValue, Semaphore, SubmitInfo, submit_to_graphic_queue, \
         immediate_buffer, HighPerformanceBuffer, \
-        VertexInputBindingDescription, VertexInputAttributeDescription
+        VertexInputBindingDescription, VertexInputAttributeDescription, \
+        DescriptorSetLayoutBinding, DescriptorSetLayout, DescriptorPool, \
+        DescriptorBufferInfo, WriteDescriptorSet, update_descriptorsets, \
+        PipelineLayout, DescriptorPoolSize
 
 
 class App(BaseApp):
@@ -46,6 +49,16 @@ class App(BaseApp):
             np.copyto(wrapper, indices.view(dtype=np.uint8), casting='no')
 
         # ----------
+        # UNIFORM BUFFER
+        ua = [1]
+        uniforms = np.array(ua, dtype=np.float32)
+        ubuffer = HighPerformanceBuffer(self.context, uniforms.nbytes,
+                                        'uniform')
+        with ubuffer.bind(self.context) as b:
+            wrapper = np.array(b, copy=False)
+            np.copyto(wrapper, uniforms.view(dtype=np.uint8), casting='no')
+
+        # ----------
         # SHADER MODULES
         path = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(path, 'shader')
@@ -57,6 +70,8 @@ class App(BaseApp):
         vs_module = ShaderModule(self.context, spirv_vs)
         fs_module = ShaderModule(self.context, spirv_fs)
 
+        # ----------
+        # FINAL IMAGE LAYOUT
         with immediate_buffer(self.context) as cmd:
             self.context.final_image.update_layout(
                 cmd, 'VK_IMAGE_LAYOUT_UNDEFINED',
@@ -85,6 +100,24 @@ class App(BaseApp):
         )
         renderpass = Renderpass(self.context, [attachment], [subpass],
                                 [dependency])
+
+        # ----------
+        # UBO DESCRIPTOR
+        ubo_descriptor = DescriptorSetLayoutBinding(
+            0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1,
+            'VK_SHADER_STAGE_FRAGMENT_BIT', None)
+        descriptor_layout = DescriptorSetLayout(self.context, [ubo_descriptor])
+
+        pool_size = DescriptorPoolSize('VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1)
+        descriptor_pool = DescriptorPool(self.context, [pool_size], 1)
+        descriptor_set = descriptor_pool.allocate_descriptorsets(
+            self.context, 1, [descriptor_layout])[0]
+        descriptorbuffer_info = DescriptorBufferInfo(
+            ubuffer.final_buffer, 0, 4)
+        descriptor_write = WriteDescriptorSet(
+            descriptor_set, 0, 0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER',
+            [descriptorbuffer_info])
+        update_descriptorsets(self.context, [descriptor_write], [])
 
         # ----------
         # PIPELINE
@@ -124,10 +157,12 @@ class App(BaseApp):
                                         [blend_attachment], [0, 0, 0, 0])
         dynamic = None
 
+        pipeline_layout = PipelineLayout(self.context, [descriptor_layout])
+
         pipeline = Pipeline(
             self.context, stages, vertex_input, input_assembly,
             viewport_state, rasterization, multisample, depth,
-            blend, dynamic, renderpass)
+            blend, dynamic, pipeline_layout, renderpass)
 
         # ----------
         # COMMAND BUFFER
@@ -163,6 +198,7 @@ class App(BaseApp):
             cmd.bind_vertex_buffers(0, 1, [vbuffer.final_buffer], [0])
             cmd.bind_index_buffer(ibuffer.final_buffer, 0,
                                   'VK_INDEX_TYPE_UINT16')
+            cmd.bind_descriptor_sets(pipeline_layout, 0, [descriptor_set], [])
             cmd.draw_indexed(6, 0)
             cmd.end_renderpass()
 

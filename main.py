@@ -2,7 +2,11 @@
 from vulkdemo import App
 
 
-if __name__ == "__main__":
+def main():
     app = App(debug=True)
     with app as a:
         a.run()
+
+
+if __name__ == "__main__":
+    main()
