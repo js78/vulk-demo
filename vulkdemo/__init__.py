@@ -2,6 +2,7 @@ import os.path
 import numpy as np
 
 from vulk.baseapp import BaseApp
+from vulkbare import load_image
 from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         PipelineVertexInputState, PipelineViewportState, Viewport, Rect2D, \
         Offset2D, Extent2D, PipelineInputAssemblyState, \
@@ -14,7 +15,8 @@ from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         VertexInputBindingDescription, VertexInputAttributeDescription, \
         DescriptorSetLayoutBinding, DescriptorSetLayout, DescriptorPool, \
         DescriptorBufferInfo, WriteDescriptorSet, update_descriptorsets, \
-        PipelineLayout, DescriptorPoolSize
+        PipelineLayout, DescriptorPoolSize, HighPerformanceImage, \
+        ImageSubresourceRange, ImageView, Sampler, DescriptorImageInfo
 
 
 class App(BaseApp):
@@ -22,17 +24,18 @@ class App(BaseApp):
         super().__init__(*args, **kwargs)
 
     def start(self):
+        path = os.path.dirname(os.path.abspath(__file__))
         w = self.context.width
         h = self.context.height
 
         # ----------
         # VERTEX BUFFER
-        va = [([-0.5, -0.5], [1, 0, 0]),
-              ([-0.5, 0.5], [0, 1, 0]),
-              ([0.5, 0.5], [0, 0, 1]),
-              ([0.5, -0.5], [1, 1, 1])]
+        va = [([-0.5, -0.5], [1, 0, 0], [0, 0]),
+              ([-0.5, 0.5], [0, 1, 0], [0, 1]),
+              ([0.5, 0.5], [0, 0, 1], [1, 1]),
+              ([0.5, -0.5], [1, 1, 1], [1, 0])]
 
-        vertices = np.array(va, dtype='2float32, 3uint32')
+        vertices = np.array(va, dtype='2float32, 3uint32, 2float32')
         vbuffer = HighPerformanceBuffer(self.context, vertices.nbytes,
                                         'vertex')
         with vbuffer.bind(self.context) as b:
@@ -59,8 +62,38 @@ class App(BaseApp):
             np.copyto(wrapper, uniforms.view(dtype=np.uint8), casting='no')
 
         # ----------
+        # LOAD BITMAP
+        image_file = open(os.path.join(path, 'vulkan.png'), 'rb')
+        bitmap, bwidth, bheight, bcomponents = load_image(image_file.read())
+
+        # ----------
+        # TEST TEXTURE
+        texture = HighPerformanceImage(self.context, 'VK_IMAGE_TYPE_2D',
+                                       'VK_FORMAT_R8G8B8_UNORM', bwidth,
+                                       bheight, 1, 1, 1,
+                                       'VK_SAMPLE_COUNT_1_BIT')
+        texture_range = ImageSubresourceRange('VK_IMAGE_ASPECT_COLOR_BIT',
+                                              0, 1, 0, 1)
+        texture_view = ImageView(
+            self.context, texture.final_image, 'VK_IMAGE_VIEW_TYPE_2D',
+            'VK_FORMAT_R8G8B8_UNORM', texture_range)
+        texture_sampler = Sampler(
+            self.context, 'VK_FILTER_LINEAR', 'VK_FILTER_LINEAR',
+            'VK_SAMPLER_MIPMAP_MODE_LINEAR', 'VK_SAMPLER_ADDRESS_MODE_REPEAT',
+            'VK_SAMPLER_ADDRESS_MODE_REPEAT',
+            'VK_SAMPLER_ADDRESS_MODE_REPEAT', 0, True, 16, False,
+            'VK_COMPARE_OP_ALWAYS', 0, 0, 'VK_BORDER_COLOR_INT_OPAQUE_BLACK',
+            False)
+
+        # ----------
+        # FILL TEXTURE
+        wrapbitmap = np.array(bitmap, copy=False)
+        with texture.bind(self.context) as t:
+            wrapper = np.array(t, copy=False)
+            np.copyto(wrapper, wrapbitmap, casting='no')
+
+        # ----------
         # SHADER MODULES
-        path = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(path, 'shader')
         with open(os.path.join(path, "vert.spv"), 'rb') as f:
             spirv_vs = f.read()
@@ -102,22 +135,40 @@ class App(BaseApp):
                                 [dependency])
 
         # ----------
-        # UBO DESCRIPTOR
+        # DESCRIPTORS
         ubo_descriptor = DescriptorSetLayoutBinding(
             0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1,
             'VK_SHADER_STAGE_FRAGMENT_BIT', None)
-        descriptor_layout = DescriptorSetLayout(self.context, [ubo_descriptor])
+        texture_descriptor = DescriptorSetLayoutBinding(
+            1, 'VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER', 1,
+            'VK_SHADER_STAGE_FRAGMENT_BIT', None)
+        layout_bindings = [ubo_descriptor, texture_descriptor]
+        descriptor_layout = DescriptorSetLayout(self.context, layout_bindings)
 
-        pool_size = DescriptorPoolSize('VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1)
-        descriptor_pool = DescriptorPool(self.context, [pool_size], 1)
+        pool_sizes = [
+            DescriptorPoolSize('VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1),
+            DescriptorPoolSize('VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER', 1)
+        ]
+        descriptor_pool = DescriptorPool(self.context, pool_sizes, 1)
+
         descriptor_set = descriptor_pool.allocate_descriptorsets(
             self.context, 1, [descriptor_layout])[0]
+
         descriptorbuffer_info = DescriptorBufferInfo(
             ubuffer.final_buffer, 0, 4)
-        descriptor_write = WriteDescriptorSet(
+        descriptorimage_info = DescriptorImageInfo(
+            texture_sampler, texture_view,
+            'VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL')
+
+        descriptor_ubo_write = WriteDescriptorSet(
             descriptor_set, 0, 0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER',
             [descriptorbuffer_info])
-        update_descriptorsets(self.context, [descriptor_write], [])
+        descriptor_image_write = WriteDescriptorSet(
+            descriptor_set, 1, 0, 'VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER',
+            [descriptorimage_info])
+
+        update_descriptorsets(
+            self.context, [descriptor_ubo_write, descriptor_image_write], [])
 
         # ----------
         # PIPELINE
@@ -125,14 +176,17 @@ class App(BaseApp):
                   PipelineShaderStage(fs_module, 'fragment')]
 
         vertex_description = VertexInputBindingDescription(
-            0, 20, 'VK_VERTEX_INPUT_RATE_VERTEX')
+            0, 28, 'VK_VERTEX_INPUT_RATE_VERTEX')
         position_attribute = VertexInputAttributeDescription(
             0, 0, 'VK_FORMAT_R32G32_SFLOAT', 0)
         color_attribute = VertexInputAttributeDescription(
             1, 0, 'VK_FORMAT_R32G32B32_UINT', 8)
+        texture_attribute = VertexInputAttributeDescription(
+            2, 0, 'VK_FORMAT_R32G32_SFLOAT', 20)
         vertex_input = PipelineVertexInputState([vertex_description],
                                                 [position_attribute,
-                                                 color_attribute])
+                                                 color_attribute,
+                                                 texture_attribute])
 
         input_assembly = PipelineInputAssemblyState(
             'VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST')
