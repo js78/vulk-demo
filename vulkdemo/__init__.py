@@ -3,6 +3,7 @@ import numpy as np
 
 from vulk.baseapp import BaseApp
 from vulkbare import load_image
+from vulk import vulkanconstant as vc
 from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         PipelineVertexInputState, PipelineViewportState, Viewport, Rect2D, \
         Offset2D, Extent2D, PipelineInputAssemblyState, \
@@ -37,7 +38,7 @@ class App(BaseApp):
 
         vertices = np.array(va, dtype='2float32, 3uint32, 2float32')
         vbuffer = HighPerformanceBuffer(self.context, vertices.nbytes,
-                                        'vertex')
+                                        vc.BufferUsage.VERTEX_BUFFER)
         with vbuffer.bind(self.context) as b:
             wrapper = np.array(b, copy=False)
             np.copyto(wrapper, vertices.view(dtype=np.uint8), casting='no')
@@ -46,7 +47,8 @@ class App(BaseApp):
         # INDEX BUFFER
         ia = [0, 1, 2, 0, 2, 3]
         indices = np.array(ia, dtype=np.uint16)
-        ibuffer = HighPerformanceBuffer(self.context, indices.nbytes, 'index')
+        ibuffer = HighPerformanceBuffer(self.context, indices.nbytes,
+                                        vc.BufferUsage.INDEX_BUFFER)
         with ibuffer.bind(self.context) as b:
             wrapper = np.array(b, copy=False)
             np.copyto(wrapper, indices.view(dtype=np.uint8), casting='no')
@@ -56,7 +58,7 @@ class App(BaseApp):
         ua = [1]
         uniforms = np.array(ua, dtype=np.float32)
         ubuffer = HighPerformanceBuffer(self.context, uniforms.nbytes,
-                                        'uniform')
+                                        vc.BufferUsage.UNIFORM_BUFFER)
         with ubuffer.bind(self.context) as b:
             wrapper = np.array(b, copy=False)
             np.copyto(wrapper, uniforms.view(dtype=np.uint8), casting='no')
@@ -68,22 +70,21 @@ class App(BaseApp):
 
         # ----------
         # TEST TEXTURE
-        texture = HighPerformanceImage(self.context, 'VK_IMAGE_TYPE_2D',
-                                       'VK_FORMAT_R8G8B8_UNORM', bwidth,
+        texture = HighPerformanceImage(self.context, vc.ImageType.TYPE_2D,
+                                       vc.Format.R8G8B8_UNORM, bwidth,
                                        bheight, 1, 1, 1,
-                                       'VK_SAMPLE_COUNT_1_BIT')
-        texture_range = ImageSubresourceRange('VK_IMAGE_ASPECT_COLOR_BIT',
+                                       vc.SampleCount.COUNT_1)
+        texture_range = ImageSubresourceRange(vc.ImageAspect.COLOR,
                                               0, 1, 0, 1)
         texture_view = ImageView(
-            self.context, texture.final_image, 'VK_IMAGE_VIEW_TYPE_2D',
-            'VK_FORMAT_R8G8B8_UNORM', texture_range)
+            self.context, texture.final_image, vc.ImageViewType.TYPE_2D,
+            vc.Format.R8G8B8_UNORM, texture_range)
         texture_sampler = Sampler(
-            self.context, 'VK_FILTER_LINEAR', 'VK_FILTER_LINEAR',
-            'VK_SAMPLER_MIPMAP_MODE_LINEAR', 'VK_SAMPLER_ADDRESS_MODE_REPEAT',
-            'VK_SAMPLER_ADDRESS_MODE_REPEAT',
-            'VK_SAMPLER_ADDRESS_MODE_REPEAT', 0, True, 16, False,
-            'VK_COMPARE_OP_ALWAYS', 0, 0, 'VK_BORDER_COLOR_INT_OPAQUE_BLACK',
-            False)
+            self.context, vc.Filter.LINEAR, vc.Filter.LINEAR,
+            vc.SamplerMipmapMode.LINEAR, vc.SamplerAddressMode.REPEAT,
+            vc.SamplerAddressMode.REPEAT, vc.SamplerAddressMode.REPEAT,
+            0, True, 16, False, vc.CompareOp.ALWAYS, 0, 0,
+            vc.BorderColor.INT_OPAQUE_BLACK, False)
 
         # ----------
         # FILL TEXTURE
@@ -107,29 +108,29 @@ class App(BaseApp):
         # FINAL IMAGE LAYOUT
         with immediate_buffer(self.context) as cmd:
             self.context.final_image.update_layout(
-                cmd, 'VK_IMAGE_LAYOUT_UNDEFINED',
-                'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL',
-                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
-                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
-                0, 'VK_ACCESS_TRANSFER_READ_BIT'
+                cmd, vc.ImageLayout.UNDEFINED,
+                vc.ImageLayout.TRANSFER_SRC_OPTIMAL,
+                vc.PipelineStage.TOP_OF_PIPE,
+                vc.PipelineStage.TOP_OF_PIPE,
+                vc.Access.NONE, vc.Access.TRANSFER_READ
             )
 
         # ----------
         # RENDERPASS
         attachment = AttachmentDescription(
-            self.context.final_image.format, 'VK_SAMPLE_COUNT_1_BIT',
-            'VK_ATTACHMENT_LOAD_OP_CLEAR', 'VK_ATTACHMENT_STORE_OP_STORE',
-            'VK_ATTACHMENT_LOAD_OP_DONT_CARE',
-            'VK_ATTACHMENT_STORE_OP_DONT_CARE',
-            'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL',
-            'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL')
+            self.context.final_image.format, vc.SampleCount.COUNT_1,
+            vc.AttachmentLoadOp.CLEAR, vc.AttachmentStoreOp.STORE,
+            vc.AttachmentLoadOp.DONT_CARE,
+            vc.AttachmentStoreOp.DONT_CARE,
+            vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL,
+            vc.ImageLayout.TRANSFER_SRC_OPTIMAL)
         subpass = SubpassDescription([AttachmentReference(
-            0, 'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL')])
+            vc.ImageLayout.NONE, vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL)])
         dependency = SubpassDependency(
-            'VK_SUBPASS_EXTERNAL',
-            'VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT', 0, 0,
-            'VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT',
-            'VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT' # noqa
+            vc.SUBPASS_EXTERNAL,
+            vc.PipelineStage.COLOR_ATTACHMENT_OUTPUT, vc.Access.NONE, 0,
+            vc.PipelineStage.COLOR_ATTACHMENT_OUTPUT,
+            vc.Access.COLOR_ATTACHMENT_READ | vc.Access.COLOR_ATTACHMENT_WRITE
         )
         renderpass = Renderpass(self.context, [attachment], [subpass],
                                 [dependency])
@@ -137,17 +138,17 @@ class App(BaseApp):
         # ----------
         # DESCRIPTORS
         ubo_descriptor = DescriptorSetLayoutBinding(
-            0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1,
-            'VK_SHADER_STAGE_FRAGMENT_BIT', None)
+            0, vc.DescriptorType.UNIFORM_BUFFER, 1,
+            vc.ShaderStage.FRAGMENT, None)
         texture_descriptor = DescriptorSetLayoutBinding(
-            1, 'VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER', 1,
-            'VK_SHADER_STAGE_FRAGMENT_BIT', None)
+            1, vc.DescriptorType.COMBINED_IMAGE_SAMPLER, 1,
+            vc.ShaderStage.FRAGMENT, None)
         layout_bindings = [ubo_descriptor, texture_descriptor]
         descriptor_layout = DescriptorSetLayout(self.context, layout_bindings)
 
         pool_sizes = [
-            DescriptorPoolSize('VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER', 1),
-            DescriptorPoolSize('VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER', 1)
+            DescriptorPoolSize(vc.DescriptorType.UNIFORM_BUFFER, 1),
+            DescriptorPoolSize(vc.DescriptorType.COMBINED_IMAGE_SAMPLER, 1)
         ]
         descriptor_pool = DescriptorPool(self.context, pool_sizes, 1)
 
@@ -158,13 +159,13 @@ class App(BaseApp):
             ubuffer.final_buffer, 0, 4)
         descriptorimage_info = DescriptorImageInfo(
             texture_sampler, texture_view,
-            'VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL')
+            vc.ImageLayout.SHADER_READ_ONLY_OPTIMAL)
 
         descriptor_ubo_write = WriteDescriptorSet(
-            descriptor_set, 0, 0, 'VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER',
+            descriptor_set, 0, 0, vc.DescriptorType.UNIFORM_BUFFER,
             [descriptorbuffer_info])
         descriptor_image_write = WriteDescriptorSet(
-            descriptor_set, 1, 0, 'VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER',
+            descriptor_set, 1, 0, vc.DescriptorType.COMBINED_IMAGE_SAMPLER,
             [descriptorimage_info])
 
         update_descriptorsets(
@@ -172,42 +173,42 @@ class App(BaseApp):
 
         # ----------
         # PIPELINE
-        stages = [PipelineShaderStage(vs_module, 'vertex'),
-                  PipelineShaderStage(fs_module, 'fragment')]
+        stages = [PipelineShaderStage(vs_module, vc.ShaderStage.VERTEX),
+                  PipelineShaderStage(fs_module, vc.ShaderStage.FRAGMENT)]
 
         vertex_description = VertexInputBindingDescription(
-            0, 28, 'VK_VERTEX_INPUT_RATE_VERTEX')
+            0, 28, vc.VertexInputRate.VERTEX)
         position_attribute = VertexInputAttributeDescription(
-            0, 0, 'VK_FORMAT_R32G32_SFLOAT', 0)
+            0, 0, vc.Format.R32G32_SFLOAT, 0)
         color_attribute = VertexInputAttributeDescription(
-            1, 0, 'VK_FORMAT_R32G32B32_UINT', 8)
+            1, 0, vc.Format.R32G32B32_UINT, 8)
         texture_attribute = VertexInputAttributeDescription(
-            2, 0, 'VK_FORMAT_R32G32_SFLOAT', 20)
+            2, 0, vc.Format.R32G32_SFLOAT, 20)
         vertex_input = PipelineVertexInputState([vertex_description],
                                                 [position_attribute,
                                                  color_attribute,
                                                  texture_attribute])
 
         input_assembly = PipelineInputAssemblyState(
-            'VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST')
+            vc.PrimitiveTopology.TRIANGLE_LIST)
 
         viewport_state = PipelineViewportState(
             [Viewport(0, 0, w, h, 0, 1)],
             [Rect2D(Offset2D(0, 0), Extent2D(w, h))])
 
         rasterization = PipelineRasterizationState(
-            False, 'VK_POLYGON_MODE_FILL', 1, 'VK_CULL_MODE_BACK_BIT',
-            'VK_FRONT_FACE_COUNTER_CLOCKWISE', 0, 0, 0)
+            False, vc.PolygonMode.FILL, 1, vc.CullMode.BACK,
+            vc.FrontFace.COUNTER_CLOCKWISE, 0, 0, 0)
 
         multisample = PipelineMultisampleState(
-            False, 'VK_SAMPLE_COUNT_1_BIT', 0)
+            False, vc.SampleCount.COUNT_1, 0)
         depth = None
         blend_attachment = PipelineColorBlendAttachmentState(
-            False, 'VK_BLEND_FACTOR_ONE', 'VK_BLEND_FACTOR_ZERO',
-            'VK_BLEND_OP_ADD', 'VK_BLEND_FACTOR_ONE', 'VK_BLEND_FACTOR_ZERO',
-            'VK_BLEND_OP_ADD', 'VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT' # noqa
+            False, vc.BlendFactor.ONE, vc.BlendFactor.ZERO,
+            vc.BlendOp.ADD, vc.BlendFactor.ONE, vc.BlendFactor.ZERO,
+            vc.BlendOp.ADD, vc.ColorComponent.R | vc.ColorComponent.G | vc.ColorComponent.B | vc.ColorComponent.A # noqa
         )
-        blend = PipelineColorBlendState(False, 'VK_LOGIC_OP_COPY',
+        blend = PipelineColorBlendState(False, vc.LogicOp.COPY,
                                         [blend_attachment], [0, 0, 0, 0])
         dynamic = None
 
@@ -223,7 +224,7 @@ class App(BaseApp):
         commandpool = CommandPool(
             self.context, self.context.queue_family_indices['graphic'])
         commandbuffers = commandpool.allocate_buffers(
-            self.context, 'VK_COMMAND_BUFFER_LEVEL_PRIMARY', 1)
+            self.context, vc.CommandBufferLevel.PRIMARY, 1)
 
         framebuffer = Framebuffer(self.context, renderpass,
                                   [self.context.final_image_view], w, h, 1)
@@ -232,12 +233,12 @@ class App(BaseApp):
             # We have to put the good layout because renderpass cannot do it
             # for us, it doesn't know the old layout of the image
             self.context.final_image.update_layout(
-                cmd, 'VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL',
-                'VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL',
-                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
-                'VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT',
-                'VK_ACCESS_TRANSFER_READ_BIT',
-                'VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT'
+                cmd, vc.ImageLayout.TRANSFER_SRC_OPTIMAL,
+                vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL,
+                vc.PipelineStage.TOP_OF_PIPE,
+                vc.PipelineStage.TOP_OF_PIPE,
+                vc.Access.TRANSFER_READ,
+                vc.Access.COLOR_ATTACHMENT_WRITE
             )
 
             # RenderPass manages the final_image dst layout
@@ -251,7 +252,7 @@ class App(BaseApp):
             cmd.bind_pipeline(pipeline)
             cmd.bind_vertex_buffers(0, 1, [vbuffer.final_buffer], [0])
             cmd.bind_index_buffer(ibuffer.final_buffer, 0,
-                                  'VK_INDEX_TYPE_UINT16')
+                                  vc.IndexType.UINT16)
             cmd.bind_descriptor_sets(pipeline_layout, 0, [descriptor_set], [])
             cmd.draw_indexed(6, 0)
             cmd.end_renderpass()
