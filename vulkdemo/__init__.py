@@ -4,6 +4,7 @@ import numpy as np
 from vulk.baseapp import BaseApp
 from vulkbare import load_image
 from vulk import vulkanconstant as vc
+from vulk.graphic import mesh
 from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         PipelineVertexInputState, PipelineViewportState, Viewport, Rect2D, \
         Offset2D, Extent2D, PipelineInputAssemblyState, \
@@ -30,28 +31,25 @@ class App(BaseApp):
         h = self.context.height
 
         # ----------
-        # VERTEX BUFFER
+        # MESH
+        # ----------
+        position_va = mesh.VertexAttribute(0, vc.Format.R32G32_SFLOAT)
+        color_va = mesh.VertexAttribute(1, vc.Format.R32G32B32_UINT)
+        texture_va = mesh.VertexAttribute(2, vc.Format.R32G32_SFLOAT)
+
+        quad = mesh.Mesh(
+            self.context, 4, 6,
+            mesh.VertexAttributes([position_va, color_va, texture_va]))
+
         va = [([-0.5, -0.5], [1, 0, 0], [0, 0]),
               ([-0.5, 0.5], [0, 1, 0], [0, 1]),
               ([0.5, 0.5], [0, 0, 1], [1, 1]),
               ([0.5, -0.5], [1, 1, 1], [1, 0])]
-
-        vertices = np.array(va, dtype='2float32, 3uint32, 2float32')
-        vbuffer = HighPerformanceBuffer(self.context, vertices.nbytes,
-                                        vc.BufferUsage.VERTEX_BUFFER)
-        with vbuffer.bind(self.context) as b:
-            wrapper = np.array(b, copy=False)
-            np.copyto(wrapper, vertices.view(dtype=np.uint8), casting='no')
-
-        # ----------
-        # INDEX BUFFER
         ia = [0, 1, 2, 0, 2, 3]
-        indices = np.array(ia, dtype=np.uint16)
-        ibuffer = HighPerformanceBuffer(self.context, indices.nbytes,
-                                        vc.BufferUsage.INDEX_BUFFER)
-        with ibuffer.bind(self.context) as b:
-            wrapper = np.array(b, copy=False)
-            np.copyto(wrapper, indices.view(dtype=np.uint8), casting='no')
+
+        quad.set_vertices(va)
+        quad.set_indices(ia)
+        quad.upload(self.context)
 
         # ----------
         # UNIFORM BUFFER
@@ -177,17 +175,15 @@ class App(BaseApp):
                   PipelineShaderStage(fs_module, vc.ShaderStage.FRAGMENT)]
 
         vertex_description = VertexInputBindingDescription(
-            0, 28, vc.VertexInputRate.VERTEX)
-        position_attribute = VertexInputAttributeDescription(
-            0, 0, vc.Format.R32G32_SFLOAT, 0)
-        color_attribute = VertexInputAttributeDescription(
-            1, 0, vc.Format.R32G32B32_UINT, 8)
-        texture_attribute = VertexInputAttributeDescription(
-            2, 0, vc.Format.R32G32_SFLOAT, 20)
+            0, quad.attributes.size, vc.VertexInputRate.VERTEX)
+
+        vk_attrs = []
+        for attr in quad.attributes:
+            vk_attrs.append(VertexInputAttributeDescription(
+                attr.location, 0, attr.format, attr.offset))
+
         vertex_input = PipelineVertexInputState([vertex_description],
-                                                [position_attribute,
-                                                 color_attribute,
-                                                 texture_attribute])
+                                                vk_attrs)
 
         input_assembly = PipelineInputAssemblyState(
             vc.PrimitiveTopology.TRIANGLE_LIST)
@@ -250,9 +246,7 @@ class App(BaseApp):
             )
 
             cmd.bind_pipeline(pipeline)
-            cmd.bind_vertex_buffers(0, 1, [vbuffer.final_buffer], [0])
-            cmd.bind_index_buffer(ibuffer.final_buffer, 0,
-                                  vc.IndexType.UINT16)
+            cmd.bind_mesh(quad)
             cmd.bind_descriptor_sets(pipeline_layout, 0, [descriptor_set], [])
             cmd.draw_indexed(6, 0)
             cmd.end_renderpass()
