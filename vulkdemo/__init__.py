@@ -5,6 +5,7 @@ from vulk.baseapp import BaseApp
 from vulkbare import load_image
 from vulk import vulkanconstant as vc
 from vulk.graphic import mesh
+from vulk.graphic.texture import Texture
 from vulk.vulkanobject import ShaderModule, Pipeline, PipelineShaderStage, \
         PipelineVertexInputState, PipelineViewportState, Viewport, Rect2D, \
         Offset2D, Extent2D, PipelineInputAssemblyState, \
@@ -62,34 +63,19 @@ class App(BaseApp):
             np.copyto(wrapper, uniforms.view(dtype=np.uint8), casting='no')
 
         # ----------
-        # LOAD BITMAP
-        image_file = open(os.path.join(path, 'vulkan.png'), 'rb')
-        bitmap, bwidth, bheight, bcomponents = load_image(image_file.read())
-
-        # ----------
         # TEST TEXTURE
-        texture = HighPerformanceImage(self.context, vc.ImageType.TYPE_2D,
-                                       vc.Format.R8G8B8_UNORM, bwidth,
-                                       bheight, 1, 1, 1,
-                                       vc.SampleCount.COUNT_1)
+        texture = Texture(self.context, os.path.join(path, 'vulkan.png'))
         texture_range = ImageSubresourceRange(vc.ImageAspect.COLOR,
                                               0, 1, 0, 1)
         texture_view = ImageView(
-            self.context, texture.final_image, vc.ImageViewType.TYPE_2D,
-            vc.Format.R8G8B8_UNORM, texture_range)
+            self.context, texture.texture.final_image,
+            vc.ImageViewType.TYPE_2D, texture.format, texture_range)
         texture_sampler = Sampler(
             self.context, vc.Filter.LINEAR, vc.Filter.LINEAR,
             vc.SamplerMipmapMode.LINEAR, vc.SamplerAddressMode.REPEAT,
             vc.SamplerAddressMode.REPEAT, vc.SamplerAddressMode.REPEAT,
             0, True, 16, False, vc.CompareOp.ALWAYS, 0, 0,
             vc.BorderColor.INT_OPAQUE_BLACK, False)
-
-        # ----------
-        # FILL TEXTURE
-        wrapbitmap = np.array(bitmap, copy=False)
-        with texture.bind(self.context) as t:
-            wrapper = np.array(t, copy=False)
-            np.copyto(wrapper, wrapbitmap, casting='no')
 
         # ----------
         # SHADER MODULES
