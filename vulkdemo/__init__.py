@@ -207,7 +207,7 @@ class App(BaseApp):
             cmd.bind_pipeline(pipeline)
             quad.bind(cmd)
             cmd.bind_descriptor_sets(pipeline_layout, 0, [descriptor_set], [])
-            cmd.draw_indexed(6, 0)
+            quad.draw(cmd)
             cmd.end_renderpass()
 
         # ----------
