@@ -65,17 +65,6 @@ class App(BaseApp):
         # ----------
         # TEST TEXTURE
         texture = Texture(self.context, os.path.join(path, 'vulkan.png'))
-        texture_range = ImageSubresourceRange(vc.ImageAspect.COLOR,
-                                              0, 1, 0, 1)
-        texture_view = ImageView(
-            self.context, texture.texture.final_image,
-            vc.ImageViewType.TYPE_2D, texture.format, texture_range)
-        texture_sampler = Sampler(
-            self.context, vc.Filter.LINEAR, vc.Filter.LINEAR,
-            vc.SamplerMipmapMode.LINEAR, vc.SamplerAddressMode.REPEAT,
-            vc.SamplerAddressMode.REPEAT, vc.SamplerAddressMode.REPEAT,
-            0, True, 16, False, vc.CompareOp.ALWAYS, 0, 0,
-            vc.BorderColor.INT_OPAQUE_BLACK, False)
 
         # ----------
         # SHADER MODULES
@@ -142,7 +131,7 @@ class App(BaseApp):
         descriptorbuffer_info = DescriptorBufferInfo(
             ubuffer.final_buffer, 0, 4)
         descriptorimage_info = DescriptorImageInfo(
-            texture_sampler, texture_view,
+            texture.sampler, texture.view,
             vc.ImageLayout.SHADER_READ_ONLY_OPTIMAL)
 
         descriptor_ubo_write = WriteDescriptorSet(
