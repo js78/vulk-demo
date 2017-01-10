@@ -84,7 +84,8 @@ class App(BaseApp):
             vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL,
             vc.ImageLayout.TRANSFER_SRC_OPTIMAL)
         subpass = vo.SubpassDescription([vo.AttachmentReference(
-            vc.ImageLayout.NONE, vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL)])
+            0, vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL)],
+            [], [], [], [])
         dependency = vo.SubpassDependency(
             vc.SUBPASS_EXTERNAL,
             vc.PipelineStage.COLOR_ATTACHMENT_OUTPUT, vc.Access.NONE, 0,
