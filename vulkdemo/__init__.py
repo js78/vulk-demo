@@ -55,8 +55,10 @@ class App(BaseApp):
 
         # ----------
         # SHADER MODULES
-        spirv_v = open(os.path.join(shaderpath, "vert.spv"), "rb").read()
-        spirv_f = open(os.path.join(shaderpath, "frag.spv"), "rb").read()
+        with open(os.path.join(shaderpath, "vert.spv"), "rb") as f:
+            spirv_v = f.read()
+        with open(os.path.join(shaderpath, "frag.spv"), "rb") as f:
+            spirv_f = f.read()
         shaders_mapping = {
             vc.ShaderStage.VERTEX: spirv_v,
             vc.ShaderStage.FRAGMENT: spirv_f
