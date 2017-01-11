@@ -59,22 +59,12 @@ class App(BaseApp):
             spirv_v = f.read()
         with open(os.path.join(shaderpath, "frag.spv"), "rb") as f:
             spirv_f = f.read()
+
         shaders_mapping = {
             vc.ShaderStage.VERTEX: spirv_v,
             vc.ShaderStage.FRAGMENT: spirv_f
         }
         shader_program = vo.ShaderProgram(self.context, shaders_mapping)
-
-        # ----------
-        # FINAL IMAGE LAYOUT
-        with vo.immediate_buffer(self.context) as cmd:
-            self.context.final_image.update_layout(
-                cmd, vc.ImageLayout.UNDEFINED,
-                vc.ImageLayout.TRANSFER_SRC_OPTIMAL,
-                vc.PipelineStage.TOP_OF_PIPE,
-                vc.PipelineStage.TOP_OF_PIPE,
-                vc.Access.NONE, vc.Access.TRANSFER_READ
-            )
 
         # ----------
         # RENDERPASS
@@ -84,7 +74,7 @@ class App(BaseApp):
             vc.AttachmentLoadOp.DONT_CARE,
             vc.AttachmentStoreOp.DONT_CARE,
             vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL,
-            vc.ImageLayout.TRANSFER_SRC_OPTIMAL)
+            vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL)
         subpass = vo.SubpassDescription([vo.AttachmentReference(
             0, vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL)],
             [], [], [], [])
@@ -188,18 +178,6 @@ class App(BaseApp):
             self.context, renderpass, [self.context.final_image_view], w, h, 1)
 
         with commandbuffers[0].bind() as cmd:
-            # We have to put the good layout because renderpass cannot do it
-            # for us, it doesn't know the old layout of the image
-            self.context.final_image.update_layout(
-                cmd, vc.ImageLayout.TRANSFER_SRC_OPTIMAL,
-                vc.ImageLayout.COLOR_ATTACHMENT_OPTIMAL,
-                vc.PipelineStage.TOP_OF_PIPE,
-                vc.PipelineStage.TOP_OF_PIPE,
-                vc.Access.TRANSFER_READ,
-                vc.Access.COLOR_ATTACHMENT_WRITE
-            )
-
-            # RenderPass manages the final_image dst layout
             cmd.begin_renderpass(
                 renderpass,
                 framebuffer,
