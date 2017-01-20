@@ -13,7 +13,7 @@ class App(BaseApp):
         super().start()
         path = os.path.dirname(os.path.abspath(__file__))
 
-        self.spritebatch = SpriteBatch(self.context)
+        self.spritebatch = SpriteBatch(self.context, clear=[1, 1, 1, 1])
 
         # ----------
         # TEST TEXTURE
