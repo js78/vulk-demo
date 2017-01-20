@@ -10,6 +10,7 @@ class App(BaseApp):
         super().__init__(*args, **kwargs)
 
     def start(self):
+        super().start()
         path = os.path.dirname(os.path.abspath(__file__))
 
         self.spritebatch = SpriteBatch(self.context)
