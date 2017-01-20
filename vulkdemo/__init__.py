@@ -1,5 +1,4 @@
 import os.path
-import random
 
 from vulk.baseapp import BaseApp
 from vulk.graphic.texture import Texture
@@ -18,16 +17,19 @@ class App(BaseApp):
         # ----------
         # TEST TEXTURE
         self.texture = Texture(self.context, os.path.join(path, 'vulkan.png'))
+        self.x = 0
+        self.y = 0
 
     def end(self):
         pass
 
     def render(self, delta):
-        self.spritebatch.begin(self.context)
+        speed = 1
+        self.x += speed * delta
+        self.y += speed * delta
 
-        self.spritebatch.draw(self.texture, 0, 0)
-        self.spritebatch.draw(self.texture, 100, 100)
-        self.spritebatch.draw(self.texture, 200, 200)
+        self.spritebatch.begin(self.context)
+        self.spritebatch.draw(self.texture, self.x, self.y, 100, 100)
         spritebatch_semaphore = self.spritebatch.end(self.context)
 
         self.context.swap([spritebatch_semaphore])
