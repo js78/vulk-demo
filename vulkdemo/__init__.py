@@ -1,8 +1,9 @@
 import os.path
 
 from vulk.baseapp import BaseApp
-from vulk.graphic.texture import Texture
+from vulk.graphic.texture import Texture, TextureRegion
 from vulk.graphic.d2.spritebatch import SpriteBatch
+from vulk import audio
 
 
 class App(BaseApp):
@@ -11,7 +12,8 @@ class App(BaseApp):
 
     def start(self):
         super().start()
-        path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'asset')
 
         # self.spritebatch = SpriteBatch(self.context, clear=[1, 1, 1, 1])
         self.spritebatch = SpriteBatch(self.context)
@@ -20,11 +22,14 @@ class App(BaseApp):
         # TEST TEXTURE
         vulkan_path = os.path.join(path, 'vulkan.png')
         starwars_path = os.path.join(path, 'starwars.jpg')
-        self.texture = Texture(self.context, vulkan_path)
+        texture = Texture(self.context, vulkan_path)
         self.texture2 = Texture(self.context, starwars_path)
+        self.region1 = TextureRegion(texture, u=0.3, u2=0.7)
         self.x = 0
         self.y = 0
         self.size = 100
+        s = audio.Music(os.path.join(path, '28283__acclivity__undertreeinrain.mp3'))
+        s.play()
 
     def end(self):
         pass
@@ -37,9 +42,7 @@ class App(BaseApp):
         self.size += speed * delta
 
         self.spritebatch.begin(self.context)
-        self.spritebatch.draw(self.texture2, 0, 0, self.size, self.size)
-        self.spritebatch.draw(self.texture, self.context.width - self.size,
-                              0, self.size, self.size)
+        self.spritebatch.draw_region(self.region1, 0, 0, self.size, self.size)
         spritebatch_semaphore = self.spritebatch.end()
 
         self.context.swap([spritebatch_semaphore])
