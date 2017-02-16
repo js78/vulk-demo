@@ -1,12 +1,18 @@
 #!/usr/bin/env python3.6
-from vulkdemo import App
+import click
+import importlib
 
 
-def main():
-    app = App(debug=True)
-    with app as a:
-        a.run()
+demos = ['simplegame']
+
+
+@click.command()
+@click.argument('name')
+def demo(name):
+    module = importlib.import_module("vulkdemo." + name)
+    main = getattr(module, 'main')
+    main()
 
 
 if __name__ == "__main__":
-    main()
+    demo()
