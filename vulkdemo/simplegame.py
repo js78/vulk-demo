@@ -71,9 +71,9 @@ class App(BaseApp):
 
         def key_down(keycode):
             if keycode == ec.KeyCode.LEFT:
-                self.bucket.x -= 200 * self.delta
+                self.bucket.x -= 4 * self.delta
             if keycode == ec.KeyCode.RIGHT:
-                self.bucket.x += 200 * self.delta
+                self.bucket.x += 4 * self.delta
 
             if self.bucket.x < 0:
                 self.bucket.x = 0
@@ -93,7 +93,7 @@ class App(BaseApp):
     def update_raindrops(self, delta):
         new_raindrops = []
         for raindrop in self.raindrops:
-            raindrop.y += 20 * delta
+            raindrop.y += delta / 5
             if raindrop.overlaps(self.bucket):
                 self.drop_sound.play()
             else:
