@@ -33,6 +33,9 @@ class App(BaseApp):
     def end(self):
         pass
 
+    def reload(self):
+        pass
+
     def render(self, delta):
         # Clear screen
         self.context.clear_final_image([0, 0, 0.2, 1])
