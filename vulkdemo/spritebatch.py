@@ -3,7 +3,7 @@ from os import path
 
 from vulk.baseapp import BaseApp
 from vulk.graphic.texture import Texture
-from vulk.graphic.d2.spritebatch import SpriteBatch
+from vulk.graphic.d2.batch import SpriteBatch
 
 
 ASSET = path.join(path.dirname(path.abspath(__file__)), 'asset')

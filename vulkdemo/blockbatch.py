@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.6
 from vulk.baseapp import BaseApp
-from vulk.graphic.d2.blockbatch import BlockBatch, BlockProperty
+from vulk.graphic.d2.batch import BlockBatch, BlockProperty
 
 
 class App(BaseApp):

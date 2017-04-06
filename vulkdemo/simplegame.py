@@ -4,7 +4,7 @@ import random
 
 from vulk.baseapp import BaseApp
 from vulk.graphic.texture import Texture
-from vulk.graphic.d2.spritebatch import SpriteBatch
+from vulk.graphic.d2.batch import SpriteBatch
 from vulk.graphic.camera import OrthographicCamera
 from vulk.math.shape import Rectangle
 from vulk.math.vector import Vector3
