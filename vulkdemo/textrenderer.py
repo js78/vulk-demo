@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.6
 from vulk.baseapp import BaseApp
-from vulk.graphic.d2.batch import CharBatch
-from vulk.graphic.d2.fontdata import FontData
+from vulk.graphic.d2.font import FontData, TextRenderer
 
 
 class App(BaseApp):
@@ -10,8 +9,8 @@ class App(BaseApp):
 
     def start(self):
         super().start()
-        self.data = FontData(self.context, '/home/realitix/git/vulk/vulk/asset/font/arial.fnt')
-        self.batch = CharBatch(self.context)
+        data = FontData(self.context, '/home/realitix/git/vulk/vulk/asset/font/arial.fnt')
+        self.renderer = TextRenderer(self.context, data)
 
 
     def end(self):
@@ -24,9 +23,9 @@ class App(BaseApp):
         # Clear screen
         self.context.clear_final_image([0, 0, 0.2, 1])
 
-        self.batch.begin(self.context)
-        self.batch.draw_char(self.data, "a", 10, 10, scale_x=0.5, scale_y=0.5)
-        batch_semaphore = self.batch.end()
+        self.renderer.begin(self.context)
+        self.renderer.draw("I am a test", 10, 10, 30)
+        batch_semaphore = self.renderer.end()
         self.context.swap([batch_semaphore])
 
 
