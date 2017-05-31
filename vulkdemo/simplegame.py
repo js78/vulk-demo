@@ -104,6 +104,10 @@ class App(BaseApp):
     def end(self):
         pass
 
+    def resize(self):
+        super().resize()
+        self.spritebatch.resize(self.context)
+
     def render(self, delta):
         self.delta = delta
         if util.nanos() - self.last_droptime > 1000000000:

@@ -42,6 +42,10 @@ class App(BaseApp):
     def reload(self):
         pass
 
+    def resize(self):
+        super().resize()
+        self.batch.resize(self.context)
+
     def render(self, delta):
         # Clear screen
         self.context.clear_final_image([0, 0, 0.2, 1])

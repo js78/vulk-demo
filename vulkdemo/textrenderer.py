@@ -31,45 +31,40 @@ class App(BaseApp):
     def start(self):
         super().start()
         path = '/home/realitix/git/vulk/vulk/asset/font/arial.fnt'
-        data = FontData(self.context, path)
-        data2 = FontDataTest(self.context, path)
-        data3 = FontDataUgly(self.context, path)
-        self.renderer = TextRenderer(self.context, data)
-        self.renderer2 = TextRenderer(self.context, data2)
-        self.renderer3 = TextRenderer(self.context, data3)
+        self.data = FontData(self.context, path)
+        self.data2 = FontDataTest(self.context, path)
+        self.data3 = FontDataUgly(self.context, path)
+        self.renderer = TextRenderer(self.context)
 
     def end(self):
         pass
 
-    def reload(self):
-        pass
+    def resize(self):
+        super().resize()
+        self.renderer.resize(self.context)
 
     def render(self, delta):
         # Clear screen
         self.context.clear_final_image([0, 0, 0.2, 1])
 
         self.renderer.begin(self.context)
-        self.renderer.draw("I am a test", 10, 10, 30)
-        self.renderer.draw("I am a test", 10, 100, 40)
-        self.renderer.draw("I am a test", 10, 200, 20)
-        self.renderer.draw("I am a test", 10, 300, 10)
-        sem1 = self.renderer.end()
+        self.renderer.draw(self.data, "I am a test", 10, 10, 30)
+        self.renderer.draw(self.data, "I am a test", 10, 100, 40)
+        self.renderer.draw(self.data, "I am a test", 10, 200, 20)
+        self.renderer.draw(self.data, "I am a test", 10, 300, 10)
 
-        self.renderer2.begin(self.context)
-        self.renderer2.draw("I am a test", 200, 10, 30)
-        self.renderer2.draw("I am a test", 200, 100, 40)
-        self.renderer2.draw("I am a test", 200, 200, 20)
-        self.renderer2.draw("I am a test", 200, 300, 10)
-        sem2 = self.renderer2.end()
+        self.renderer.draw(self.data2, "I am a test", 200, 10, 30)
+        self.renderer.draw(self.data2, "I am a test", 200, 100, 40)
+        self.renderer.draw(self.data2, "I am a test", 200, 200, 20)
+        self.renderer.draw(self.data2, "I am a test", 200, 300, 10)
 
-        self.renderer3.begin(self.context)
-        self.renderer3.draw("I am a test", 400, 10, 30)
-        self.renderer3.draw("I am a test", 400, 100, 40)
-        self.renderer3.draw("I am a test", 400, 200, 20)
-        self.renderer3.draw("I am a test", 400, 300, 10)
-        sem3 = self.renderer3.end()
+        self.renderer.draw(self.data3, "I am a test", 400, 10, 30)
+        self.renderer.draw(self.data3, "I am a test", 400, 100, 40)
+        self.renderer.draw(self.data3, "I am a test", 400, 200, 20)
+        self.renderer.draw(self.data3, "I am a test", 400, 300, 10)
+        sem = self.renderer.end()
 
-        self.context.swap([sem1, sem2, sem3])
+        self.context.swap([sem])
 
 
 def main():
