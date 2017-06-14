@@ -41,7 +41,7 @@ class App(BaseApp):
 
     def resize(self):
         super().resize()
-        self.renderer.resize(self.context)
+        self.renderer.reload(self.context)
 
     def render(self, delta):
         # Clear screen

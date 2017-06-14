@@ -48,7 +48,7 @@ class App(BaseApp):
         self.rain_music = audio.Music(asset_sound('rain.mp3'))
 
         # Start immediatly background music
-        self.rain_music.play(repeat=0)
+        #self.rain_music.play(repeat=0)
 
         # Initialize camera and spritebatch
         self.camera = OrthographicCamera(800, 480)
@@ -95,7 +95,8 @@ class App(BaseApp):
         for raindrop in self.raindrops:
             raindrop.y += delta / 5
             if raindrop.overlaps(self.bucket):
-                self.drop_sound.play()
+                pass
+                # self.drop_sound.play()
             else:
                 new_raindrops.append(raindrop)
 
@@ -106,7 +107,7 @@ class App(BaseApp):
 
     def resize(self):
         super().resize()
-        self.spritebatch.resize(self.context)
+        self.spritebatch.reload(self.context)
 
     def render(self, delta):
         self.delta = delta

@@ -35,7 +35,7 @@ class App(BaseApp):
 
     def resize(self):
         super().resize()
-        self.spritebatch.resize(self.context)
+        self.spritebatch.reload(self.context)
 
     def render(self, delta):
         # Clear screen
