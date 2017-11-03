@@ -34,6 +34,8 @@ class App(BaseApp):
     def start(self):
         super().start()
 
+        ui = UI("html_file.html")
+
         path = '/home/realitix/git/vulk/vulk/asset/font/arial.fnt'
         fontdata = FontData(self.context, path)
         camera = OrthographicCamera(self.context.width, self.context.height)
