@@ -9,7 +9,8 @@ from vulk.math import interpolation
 from vulk.graphic.d2.font import FontData
 
 
-ASSET = path.join(path.dirname(path.abspath(__file__)), 'asset')
+HERE = path.dirname(path.abspath(__file__))
+ASSET = path.join(HERE, 'asset')
 ASSET_IMAGE = path.join(ASSET, 'images')
 ASSET_SOUND = path.join(ASSET, 'sounds')
 ASSET_SHADER = path.join(ASSET, 'shaders')
@@ -33,10 +34,11 @@ class App(BaseApp):
 
     def start(self):
         super().start()
-        self.ui = Ui(self.context, "html_file.html")
+        f = path.join(HERE, 'html_file.html')
+        self.ui = Ui(self.context, "file://" + f)
 
     def end(self):
-        pass
+        self.ui.dispose()
 
     def resize(self):
         super().resize()
